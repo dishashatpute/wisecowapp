@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wisecow-app
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: wisecow-app-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wisecow-app-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wisecow-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wisecow-app
+  template:
+    metadata:
+      labels:
+        app: wisecow-app
+    spec:
+      containers:
+        - name: wisecow-app
+          image: your-registry/wisecow-app:latest
+          ports:
+            - containerPort: 4499
+          volumeMounts:
+            - name: wisecow-app-storage
+              mountPath: /app/data
+      volumes:
+        - name: wisecow-app-storage
+          persistentVolumeClaim:
+            claimName: wisecow-app-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: wisecow-app
+spec:
+  selector:
+    app: wisecow-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4499
+  type: LoadBalancer
